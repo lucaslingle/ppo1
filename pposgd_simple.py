@@ -195,7 +195,12 @@ def learn(env, agent, optimizer, scheduler, comm,
                 optimizer.step()
                 scheduler.step()
 
-                newlosses = (pol_surr.detach().numpy(), pol_entpen.detach().numpy(), vf_loss.detach().numpy())
+                newlosses = (
+                    pol_surr.detach().numpy(),
+                    pol_entpen.detach().numpy(),
+                    vf_loss.detach().numpy(),
+                    ent.detach().numpy()
+                )
                 losses.append(newlosses)
             logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
@@ -204,9 +209,9 @@ def learn(env, agent, optimizer, scheduler, comm,
         for batch in d.iterate_once(optim_batchsize):
             newlosses = compute_losses(batch, agent, entcoeff, clip_param)
             losses.append(tuple(list(map(lambda loss: loss.detach().numpy(), newlosses))))
-
         meanlosses, _, _ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
+
         for (lossval, name) in zipsame(meanlosses, loss_names):
             logger.record_tabular("loss_" + name, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))

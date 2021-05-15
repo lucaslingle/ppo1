@@ -32,7 +32,7 @@ args = p.parse_args()
 # get comm object and set separate torch seed per process since we sample actions using torch.
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-workerseed = 10000 * comm.Get_rank()
+workerseed = 1337 + 42 * comm.Get_rank()
 tc.manual_seed(workerseed)
 np.random.seed(workerseed)
 random.seed(workerseed)
@@ -59,7 +59,7 @@ agent = CnnPolicy(
 
 # optimizer and scheduler. grad steps is frac of env steps.
 max_grad_steps = args.optim_epochs * args.max_timesteps // (comm.Get_size() * args.optim_batchsize)
-optimizer = tc.optim.Adam(agent.parameters(), lr=args.optim_stepsize)
+optimizer = tc.optim.Adam(agent.parameters(), lr=args.optim_stepsize, eps=1e-5)
 scheduler = tc.optim.lr_scheduler.OneCycleLR(
     optimizer=optimizer, max_lr=args.optim_stepsize, total_steps=max_grad_steps,
     pct_start=0.0, anneal_strategy='linear', cycle_momentum=False,
