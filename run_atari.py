@@ -86,7 +86,8 @@ if args.mode == 'train':
           timesteps_per_actorbatch=args.timesteps_per_actorbatch,
           clip_param=args.clip_param, entcoeff=args.ent_coef,
           optim_epochs=args.optim_epochs, optim_batchsize=args.optim_batchsize,
-          gamma=args.gamma, lam=args.gae_lambda, max_timesteps=args.max_timesteps)
+          gamma=args.gamma, lam=args.gae_lambda, max_timesteps=args.max_timesteps,
+          checkpoint_dir=args.checkpoint_dir, model_name=args.model_name)
     env.close()
 
 elif args.mode == 'play':

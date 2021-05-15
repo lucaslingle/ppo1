@@ -8,6 +8,7 @@ import time
 from collections import deque
 import torch as tc
 from mpi4py import MPI
+import os
 
 from common.dataset import Dataset
 from common.math_util import explained_variance
@@ -137,6 +138,7 @@ def learn(env, agent, optimizer, scheduler, comm,
         clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
         optim_epochs, optim_batchsize, # optimization hypers
         gamma, lam, # advantage estimation
+        checkpoint_dir, model_name,
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0):
 
     # Prepare for rollouts
@@ -229,8 +231,11 @@ def learn(env, agent, optimizer, scheduler, comm,
         logger.record_tabular("EpisodesSoFar", episodes_so_far)
         logger.record_tabular("TimestepsSoFar", timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - tstart)
-        if MPI.COMM_WORLD.Get_rank() == 0:
+        if comm.Get_rank() == 0:
             logger.dump_tabular()
+            if timesteps_so_far > 0 and timesteps_so_far % (timesteps_per_actorbatch * comm.Get_size() * 10) == 0:
+                print("Saving checkpoint...")
+                tc.save(agent.state_dict(), os.path.join(checkpoint_dir, model_name, 'model.pth'))
 
 
 def flatten_lists(listoflists):
