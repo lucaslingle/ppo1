@@ -79,7 +79,7 @@ with tc.no_grad():
     for p in agent.parameters():
         p_data = p.data.numpy()
         comm.Bcast(p_data, root=0)
-        p.data.copy_(tc.Tensor(p_data).float())
+        p.data.copy_(tc.tensor(p_data).float())
 
 if args.mode == 'train':
     learn(env=env, agent=agent, optimizer=optimizer, scheduler=scheduler, comm=comm,
