@@ -233,8 +233,9 @@ def learn(env, agent, optimizer, scheduler, comm,
         logger.record_tabular("TimeElapsed", time.time() - tstart)
         if comm.Get_rank() == 0:
             logger.dump_tabular()
-            if timesteps_so_far > 0 and timesteps_so_far % (timesteps_per_actorbatch * comm.Get_size() * 10) == 0:
+            if iters_so_far > 0 and iters_so_far % 10 == 0:
                 print("Saving checkpoint...")
+                os.makedirs(os.path.join(checkpoint_dir, model_name), exist_ok=True)
                 tc.save(agent.state_dict(), os.path.join(checkpoint_dir, model_name, 'model.pth'))
 
 

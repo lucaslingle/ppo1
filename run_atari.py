@@ -71,6 +71,7 @@ if rank == 0:
     try:
         state_dict = tc.load(os.path.join(args.checkpoint_dir, args.model_name, 'model.pth'))
         agent.load_state_dict(state_dict)
+        print(f"Continuing from checkpoint found at {os.path.join(args.checkpoint_dir, args.model_name, 'model.pth')}")
     except FileNotFoundError:
         print("Bad checkpoint or none on process 0. Continuing from scratch.")
 
