@@ -104,7 +104,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
 def learn(env, agent, optimizer, scheduler, comm,
         timesteps_per_actorbatch, # timesteps per actor per update
         clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
-        optim_epochs, optim_stepsize, optim_batchsize, # optimization hypers
+        optim_epochs, optim_batchsize, # optimization hypers
         gamma, lam, # advantage estimation
         max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0):
 
