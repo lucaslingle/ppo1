@@ -68,7 +68,8 @@ class CnnPolicy(tc.nn.Module):
     def forward(self, x):
         assert x.shape[1] == x.shape[2] == 84
         x = x / 255.
-        x = x.perm(0, 3, 1, 2)
+        x = x.permute(0, 3, 1, 2)
+        x = x.detach()
         features = self.conv_stack(x)
         dist_pi = self.policy_head(features)
         vpred = self.value_head(features)

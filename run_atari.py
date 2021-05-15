@@ -1,9 +1,13 @@
 import argparse
 import os
+import random
+import numpy as np
 import torch as tc
 from mpi4py import MPI
 from cnn_policy import CnnPolicy
 from common.atari_wrappers import make_atari, wrap_deepmind
+import logger
+from bench.monitor import Monitor
 from pposgd_simple import learn
 from play import play
 
@@ -27,11 +31,25 @@ args = p.parse_args()
 
 # get comm object and set separate torch seed per process since we sample actions using torch.
 comm = MPI.COMM_WORLD
-tc.manual_seed(comm.Get_rank())
+rank = comm.Get_rank()
+workerseed = 10000 * comm.Get_rank()
+tc.manual_seed(workerseed)
+np.random.seed(workerseed)
+random.seed(workerseed)
+
+# configure logger.
+if rank == 0:
+    logger.configure()
+else:
+    logger.configure(format_strs=[])
 
 # create env.
 env = make_atari(args.env_name)
+env.seed(workerseed)
+env = Monitor(env, logger.get_dir() and
+                    os.path.join(logger.get_dir(), str(rank)))
 env = wrap_deepmind(env)
+env.seed(workerseed)
 
 # create agent.
 agent = CnnPolicy(
@@ -39,16 +57,17 @@ agent = CnnPolicy(
     num_actions=env.action_space.n,
     kind=args.agent_size)
 
-max_grad_steps = args.optim_epochs * args.max_timesteps // args.optim_batchsize  # grad steps is frac of env steps
+# optimizer and scheduler. grad steps is frac of env steps.
+max_grad_steps = args.optim_epochs * args.max_timesteps // (comm.Get_size() * args.optim_batchsize)
 optimizer = tc.optim.Adam(agent.parameters(), lr=args.optim_stepsize)
 scheduler = tc.optim.lr_scheduler.OneCycleLR(
-    optimizer=optimizer, max_lr=args.lr, total_steps=max_grad_steps,
+    optimizer=optimizer, max_lr=args.optim_stepsize, total_steps=max_grad_steps,
     pct_start=0.0, anneal_strategy='linear', cycle_momentum=False,
     div_factor=1.0)
 
 # currently we only support checkpointing for the model params and not the rest of it
 # since we have not yet looked into synchronizing state for optimizers, schedulers etc. across processes.
-if comm.Get_rank() == 0:
+if rank == 0:
     try:
         state_dict = tc.load(os.path.join(args.checkpoint_dir, args.model_name, 'model.pth'))
         agent.load_state_dict(state_dict)
@@ -68,9 +87,11 @@ if args.mode == 'train':
           clip_param=args.clip_param, entcoeff=args.ent_coef,
           optim_epochs=args.optim_epochs, optim_batchsize=args.optim_batchsize,
           gamma=args.gamma, lam=args.gae_lambda, max_timesteps=args.max_timesteps)
+    env.close()
 
 elif args.mode == 'play':
     play(env=env, agent=agent, comm=comm, args=args)
+    env.close()
 
 else:
     raise NotImplementedError("Mode of operation not supported!")

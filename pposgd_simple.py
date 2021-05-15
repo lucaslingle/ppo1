@@ -13,6 +13,7 @@ from common.dataset import Dataset
 from common.math_util import explained_variance
 from common.console_util import fmt_row
 from common.misc_util import zipsame
+from common.mpi_moments import mpi_moments
 import logger
 
 
@@ -39,7 +40,7 @@ def traj_segment_generator(agent, env, horizon):
 
     while True:
         prevac = ac
-        dist_pi, vpred = agent(tc.Tensor(ob).float().unsqueeze(0))
+        dist_pi, vpred = agent(tc.tensor(ob).float().unsqueeze(0))
         ac = dist_pi.sample()
         logprob = dist_pi.log_prob(ac)
 
@@ -101,6 +102,36 @@ def add_vtarg_and_adv(seg, gamma, lam):
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 
+def compute_losses(batch, agent, entcoeff, clip_param):
+    mb_obs = batch["ob"]
+    mb_acs = batch["ac"]
+    mb_logpi_old = batch["logprobs"]
+    mb_advs = batch["adv"]
+    mb_vtargs = batch["vtarg"]
+
+    mb_obs = tc.tensor(mb_obs).float()
+    mb_acs = tc.tensor(mb_acs).long()
+    mb_logpi_old = tc.tensor(mb_logpi_old).float()
+    mb_advs = tc.tensor(mb_advs).float()
+    mb_vtargs = tc.tensor(mb_vtargs).float()
+
+    mb_dist_pi, mb_vpred_new = agent(mb_obs)
+    mb_logpi_new = mb_dist_pi.log_prob(mb_acs)
+
+    ent = mb_dist_pi.entropy()
+    meanent = tc.mean(ent)
+    pol_entpen = (-entcoeff) * meanent
+
+    policy_ratio = tc.exp(mb_logpi_new - mb_logpi_old)
+    clipped_policy_ratio = tc.clip(policy_ratio, 1.0 - clip_param, 1.0 + clip_param)
+    surr1 = mb_advs * policy_ratio
+    surr2 = mb_advs * clipped_policy_ratio
+    pol_surr = -tc.mean(tc.min(surr1, surr2))
+    vf_loss = tc.mean(tc.square(mb_vtargs - mb_vpred_new))
+
+    return pol_surr, pol_entpen, vf_loss, meanent
+
+
 def learn(env, agent, optimizer, scheduler, comm,
         timesteps_per_actorbatch, # timesteps per actor per update
         clip_param, entcoeff, # clipping parameter epsilon, entropy coeff
@@ -110,7 +141,7 @@ def learn(env, agent, optimizer, scheduler, comm,
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(agent, env, timesteps_per_actorbatch, stochastic=True)
+    seg_gen = traj_segment_generator(agent, env, timesteps_per_actorbatch)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -134,7 +165,7 @@ def learn(env, agent, optimizer, scheduler, comm,
 
         logger.log("********** Iteration %i ************"%iters_so_far)
 
-        seg = seg_gen.__next__()
+        seg = next(seg_gen)
         add_vtarg_and_adv(seg, gamma, lam)
 
         ob, ac, logprobs, adv, tdlamret = seg["ob"], seg["ac"], seg['logprobs'], seg["adv"], seg["tdlamret"]
@@ -149,40 +180,53 @@ def learn(env, agent, optimizer, scheduler, comm,
         for _ in range(optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                mb_obs = batch["ob"]
-                mb_acs = batch["ac"]
-                mb_logpi_old = batch["logprobs"]
-                mb_advs = batch["adv"]
-                mb_vtargs = batch["vtarg"]
-
-                mb_dist_pi, mb_vpred_new = agent(tc.Tensor(mb_obs).float())
-                mb_logpi_new = mb_dist_pi.log_prob(mb_acs)
-
-                ent = mb_dist_pi.entropy()
-                meanent = tc.mean(ent)
-                pol_entpen = (-entcoeff) * meanent
-
-                policy_ratio = tc.exp(mb_logpi_new - mb_logpi_old)  # pnew / pold
-                clipped_policy_ratio = tc.clip(policy_ratio, 1.0 - clip_param, 1.0 + clip_param)
-                surr1 = policy_ratio * adv
-                surr2 = clipped_policy_ratio * adv
-                pol_surr = - tc.mean(tc.min(surr1, surr2))  # PPO's pessimistic surrogate (L^CLIP)
-                vf_loss = tc.mean(tc.square(mb_vtargs - mb_vpred_new))
+                pol_surr, pol_entpen, vf_loss, ent = compute_losses(batch, agent, entcoeff, clip_param)
                 total_loss = pol_surr + pol_entpen + vf_loss
 
                 optimizer.zero_grad()
                 total_loss.backward()
                 with tc.no_grad():
                     for p in agent.parameters():
-                        g_old = p.grad
-                        g_new = np.zeros_like(g_old.numpy())
-                        comm.allreduce(sendbuf=g_old, recvbuf=g_new, op=MPI.SUM)
-                        p.grad.copy_(tc.Tensor(g_new).float() / comm.Get_size())
+                        g_old = p.grad.numpy()
+                        g_new = np.zeros_like(g_old)
+                        comm.Allreduce(sendbuf=g_old, recvbuf=g_new, op=MPI.SUM)
+                        p.grad.copy_(tc.tensor(g_new).float() / comm.Get_size())
 
                 optimizer.step()
                 scheduler.step()
 
-                newlosses = [pol_surr.detach().numpy(), pol_entpen.detach().numpy(), vf_loss.detach().numpy()]
+                newlosses = (pol_surr.detach().numpy(), pol_entpen.detach().numpy(), vf_loss.detach().numpy())
                 losses.append(newlosses)
-
             logger.log(fmt_row(13, np.mean(losses, axis=0)))
+
+        logger.log("Evaluating losses...")
+        losses = []
+        for batch in d.iterate_once(optim_batchsize):
+            newlosses = compute_losses(batch, agent, entcoeff, clip_param)
+            losses.append(tuple(list(map(lambda loss: loss.detach().numpy(), newlosses))))
+
+        meanlosses, _, _ = mpi_moments(losses, axis=0)
+        logger.log(fmt_row(13, meanlosses))
+        for (lossval, name) in zipsame(meanlosses, loss_names):
+            logger.record_tabular("loss_" + name, lossval)
+        logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
+        lrlocal = (seg["ep_lens"], seg["ep_rets"])  # local values
+        listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal)  # list of tuples
+        lens, rews = map(flatten_lists, zip(*listoflrpairs))
+        lenbuffer.extend(lens)
+        rewbuffer.extend(rews)
+        logger.record_tabular("EpLenMean", np.mean(lenbuffer))
+        logger.record_tabular("EpRewMean", np.mean(rewbuffer))
+        logger.record_tabular("EpThisIter", len(lens))
+        episodes_so_far += len(lens)
+        timesteps_so_far += sum(lens)
+        iters_so_far += 1
+        logger.record_tabular("EpisodesSoFar", episodes_so_far)
+        logger.record_tabular("TimestepsSoFar", timesteps_so_far)
+        logger.record_tabular("TimeElapsed", time.time() - tstart)
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            logger.dump_tabular()
+
+
+def flatten_lists(listoflists):
+    return [el for list_ in listoflists for el in list_]
