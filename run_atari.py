@@ -21,7 +21,7 @@ p.add_argument('--gae_lambda', type=float, default=0.95, help='Decay param for G
 p.add_argument('--clip_param', type=float, default=0.2, help='Clip param for PPO.')
 p.add_argument('--ent_coef', type=float, default=0.01, help='Entropy bonus coefficient.')
 p.add_argument('--optim_epochs', type=int, default=4, help='Epochs per policy improvement phase.')
-p.add_argument('--optim_stepsize', type=float, default=1e-3, help='Adam stepsize parameter.')
+p.add_argument('--optim_stepsize', type=float, default=3e-3, help='Adam stepsize parameter.')
 p.add_argument('--optim_batchsize', type=int, default=64, help='State samples per gradient step per env copy.')
 p.add_argument('--schedule', type=str, default='linear')
 p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for all checkpoints generated')
@@ -32,7 +32,7 @@ args = p.parse_args()
 # get comm object and set separate torch seed per process since we sample actions using torch.
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-workerseed = 1337 + 42 * comm.Get_rank()
+workerseed = 13372021 + 3 ** comm.Get_rank()
 tc.manual_seed(workerseed)
 np.random.seed(workerseed)
 random.seed(workerseed)
@@ -81,6 +81,10 @@ with tc.no_grad():
         p_data = p.data.numpy()
         comm.Bcast(p_data, root=0)
         p.data.copy_(tc.tensor(p_data).float())
+
+with tc.no_grad():
+    for p in agent.parameters():
+        print(f"Process {comm.Get_rank()}, data: {p.data.numpy()}")
 
 if args.mode == 'train':
     learn(env=env, agent=agent, optimizer=optimizer, scheduler=scheduler, comm=comm,

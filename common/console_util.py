@@ -11,8 +11,9 @@ def fmt_row(width, row, header=False):
     https://github.com/openai/baselines/blob/master/baselines/common/console_util.py#L12
     """
     out = " | ".join(fmt_item(x, width) for x in row)
-    if header: out = out + "\n" + "-"*len(out)
-    return
+    if header:
+        out = out + "\n" + "-"*len(out)
+    return out
 
 
 def fmt_item(x, l):

@@ -39,6 +39,7 @@ def traj_segment_generator(agent, env, horizon):
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
 
+    agent.eval()
     while True:
         prevac = ac
         dist_pi, vpred = agent(tc.tensor(ob).float().unsqueeze(0))
@@ -110,11 +111,11 @@ def compute_losses(batch, agent, entcoeff, clip_param):
     mb_advs = batch["adv"]
     mb_vtargs = batch["vtarg"]
 
-    mb_obs = tc.tensor(mb_obs).float()
-    mb_acs = tc.tensor(mb_acs).long()
-    mb_logpi_old = tc.tensor(mb_logpi_old).float()
-    mb_advs = tc.tensor(mb_advs).float()
-    mb_vtargs = tc.tensor(mb_vtargs).float()
+    mb_obs = tc.tensor(mb_obs).float().detach()
+    mb_acs = tc.tensor(mb_acs).long().detach()
+    mb_logpi_old = tc.tensor(mb_logpi_old).float().detach()
+    mb_advs = tc.tensor(mb_advs).float().detach()
+    mb_vtargs = tc.tensor(mb_vtargs).float().detach()
 
     mb_dist_pi, mb_vpred_new = agent(mb_obs)
     mb_logpi_new = mb_dist_pi.log_prob(mb_acs)
@@ -130,7 +131,8 @@ def compute_losses(batch, agent, entcoeff, clip_param):
     pol_surr = -tc.mean(tc.min(surr1, surr2))
     vf_loss = tc.mean(tc.square(mb_vtargs - mb_vpred_new))
 
-    return pol_surr, pol_entpen, vf_loss, meanent
+    kl_fake = meanent
+    return pol_surr, pol_entpen, vf_loss, kl_fake, meanent
 
 
 def learn(env, agent, optimizer, scheduler, comm,
@@ -151,7 +153,7 @@ def learn(env, agent, optimizer, scheduler, comm,
     tstart = time.time()
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
-    loss_names = ["pol_surr", "pol_entpen", "vf_loss", "ent"]
+    loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl_fake", "ent"]
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
 
@@ -172,17 +174,17 @@ def learn(env, agent, optimizer, scheduler, comm,
 
         ob, ac, logprobs, adv, tdlamret = seg["ob"], seg["ac"], seg['logprobs'], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"]  # predicted value function before udpate
-        adv = (adv - adv.mean()) / adv.std()  # standardized advantage function estimate
+        #adv = (adv - adv.mean()) / adv.std()  # standardized advantage function estimate
         d = Dataset(dict(ob=ob, ac=ac, logprobs=logprobs, adv=adv, vtarg=tdlamret), deterministic=False) # nonrecurrent
-        optim_batchsize = optim_batchsize or ob.shape[0]
 
         logger.log("Optimizing...")
         logger.log(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
+        agent.train()
         for _ in range(optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                pol_surr, pol_entpen, vf_loss, ent = compute_losses(batch, agent, entcoeff, clip_param)
+                pol_surr, pol_entpen, vf_loss, kl_fake, ent = compute_losses(batch, agent, entcoeff, clip_param)
                 total_loss = pol_surr + pol_entpen + vf_loss
 
                 optimizer.zero_grad()
@@ -192,17 +194,19 @@ def learn(env, agent, optimizer, scheduler, comm,
                         g_old = p.grad.numpy()
                         g_new = np.zeros_like(g_old)
                         comm.Allreduce(sendbuf=g_old, recvbuf=g_new, op=MPI.SUM)
-                        p.grad.copy_(tc.tensor(g_new).float() / comm.Get_size())
+                        g_new = tc.tensor(g_new).float() / comm.Get_size()
+                        p.grad.copy_(g_new)
 
                 optimizer.step()
                 scheduler.step()
 
-                newlosses = (
+                newlosses = [
                     pol_surr.detach().numpy(),
                     pol_entpen.detach().numpy(),
                     vf_loss.detach().numpy(),
+                    kl_fake.detach().numpy(),
                     ent.detach().numpy()
-                )
+                ]
                 losses.append(newlosses)
             logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
@@ -210,10 +214,9 @@ def learn(env, agent, optimizer, scheduler, comm,
         losses = []
         for batch in d.iterate_once(optim_batchsize):
             newlosses = compute_losses(batch, agent, entcoeff, clip_param)
-            losses.append(tuple(list(map(lambda loss: loss.detach().numpy(), newlosses))))
-        meanlosses, _, _ = mpi_moments(losses, axis=0)
+            losses.append(tuple(list(map(lambda loss: loss.detach().numpy(), list(newlosses)))))
+        meanlosses,_,_ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
-
         for (lossval, name) in zipsame(meanlosses, loss_names):
             logger.record_tabular("loss_" + name, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
