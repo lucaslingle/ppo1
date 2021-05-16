@@ -26,7 +26,7 @@ def normc_init(weight_tensor, gain=1.0):
     """
     with tc.no_grad():
         out = np.random.normal(loc=0.0, scale=1.0, size=weight_tensor.size())
-        out = gain * out / np.sqrt(1e-6 + np.sum(np.square(out), axis=1, keepdims=True))
+        out = gain * out / np.sqrt(np.sum(np.square(out), axis=1, keepdims=True))
         weight_tensor.copy_(tc.tensor(out))
 
 

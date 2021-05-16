@@ -16,6 +16,7 @@ from common.console_util import fmt_row
 from common.misc_util import zipsame
 from common.mpi_moments import mpi_moments
 import logger
+import mmh3
 
 
 @tc.no_grad()
@@ -43,6 +44,11 @@ def traj_segment_generator(agent, env, horizon):
     while True:
         prevac = ac
         dist_pi, vpred = agent(tc.tensor(ob).float().unsqueeze(0))
+
+        # bad perf got me paranoid about torch random number generator like
+        seed = mmh3.hash(str(MPI.COMM_WORLD.Get_rank())) ^ mmh3.hash(ob) ^ mmh3.hash(str(time.perf_counter()))
+        tc.manual_seed(seed)
+
         ac = dist_pi.sample()
         logprob = dist_pi.log_prob(ac)
 
@@ -190,12 +196,16 @@ def learn(env, agent, optimizer, scheduler, comm,
                 optimizer.zero_grad()
                 total_loss.backward()
                 with tc.no_grad():
+                    gradnorm2 = 0.0
                     for p in agent.parameters():
                         g_old = p.grad.numpy()
                         g_new = np.zeros_like(g_old)
                         comm.Allreduce(sendbuf=g_old, recvbuf=g_new, op=MPI.SUM)
-                        g_new = tc.tensor(g_new).float() / comm.Get_size()
-                        p.grad.copy_(g_new)
+                        g_new = g_new / comm.Get_size()
+                        gradnorm2 += np.sum(np.square(g_new))
+                        p.grad.copy_(tc.tensor(g_new).float())
+                    if comm.Get_rank() == 0:
+                        print(f"gradnorm: {np.sqrt(gradnorm2)}")
 
                 optimizer.step()
                 scheduler.step()

@@ -87,6 +87,13 @@ with tc.no_grad():
         comm.Bcast(p_data, root=0)
         p.data.copy_(tc.tensor(p_data).float())
 
+if rank == 0:
+    paramnorm2 = 0.0
+    for p in agent.parameters():
+        paramnorm2 += np.sum(np.square(p.data.numpy()))
+
+    print(np.sqrt(paramnorm2))
+
 if args.mode == 'train':
     learn(env=env, agent=agent, optimizer=optimizer, scheduler=scheduler, comm=comm,
           timesteps_per_actorbatch=args.timesteps_per_actorbatch,
