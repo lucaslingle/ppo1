@@ -32,10 +32,11 @@ args = p.parse_args()
 # get comm object and set separate torch seed per process since we sample actions using torch.
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-workerseed = 1868 + 10000 * comm.Get_rank()
+print(f"Process rank {rank}, seed {tc.initial_seed()}")
+workerseed = tc.initial_seed()
 tc.manual_seed(workerseed)
-np.random.seed(workerseed)
-random.seed(workerseed)
+np.random.seed(workerseed % 2**32)
+random.seed(workerseed % 2**32)
 
 # configure logger.
 if rank == 0:
