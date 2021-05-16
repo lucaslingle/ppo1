@@ -32,7 +32,7 @@ args = p.parse_args()
 # get comm object and set separate torch seed per process since we sample actions using torch.
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-workerseed = 13372021 + 3 ** comm.Get_rank()
+workerseed = 1868 + 10000 * comm.Get_rank()
 tc.manual_seed(workerseed)
 np.random.seed(workerseed)
 random.seed(workerseed)
@@ -76,15 +76,15 @@ if rank == 0:
         print("Bad checkpoint or none on process 0. Continuing from scratch.")
 
 # sync agent parameters from process with rank zero.
+# analogous to
+#
+# https://github.com/openai/baselines/blob/master/baselines/ppo1/pposgd_simple.py#L128
+# https://github.com/openai/baselines/blob/master/baselines/common/mpi_adam.py#L44
 with tc.no_grad():
     for p in agent.parameters():
         p_data = p.data.numpy()
         comm.Bcast(p_data, root=0)
         p.data.copy_(tc.tensor(p_data).float())
-
-with tc.no_grad():
-    for p in agent.parameters():
-        print(f"Process {comm.Get_rank()}, data: {p.data.numpy()}")
 
 if args.mode == 'train':
     learn(env=env, agent=agent, optimizer=optimizer, scheduler=scheduler, comm=comm,
