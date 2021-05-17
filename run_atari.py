@@ -21,7 +21,7 @@ p.add_argument('--gae_lambda', type=float, default=0.95, help='Decay param for G
 p.add_argument('--clip_param', type=float, default=0.2, help='Clip param for PPO.')
 p.add_argument('--ent_coef', type=float, default=0.01, help='Entropy bonus coefficient.')
 p.add_argument('--optim_epochs', type=int, default=4, help='Epochs per policy improvement phase.')
-p.add_argument('--optim_stepsize', type=float, default=3e-3, help='Adam stepsize parameter.')
+p.add_argument('--optim_stepsize', type=float, default=1e-3, help='Adam stepsize parameter.')
 p.add_argument('--optim_batchsize', type=int, default=64, help='State samples per gradient step per env copy.')
 p.add_argument('--schedule', type=str, default='linear')
 p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for all checkpoints generated')
