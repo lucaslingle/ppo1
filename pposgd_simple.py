@@ -42,7 +42,7 @@ def traj_segment_generator(agent, env, horizon):
     agent.eval()
     while True:
         prevac = ac
-        pi_dist, vpred, _ = agent(tc.tensor(ob).float().unsqueeze(0))
+        pi_dist, vpred = agent(tc.tensor(ob).float().unsqueeze(0))
 
         ac = pi_dist.sample()
         logprob = pi_dist.log_prob(ac)
