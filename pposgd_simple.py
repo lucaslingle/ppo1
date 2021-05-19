@@ -180,7 +180,7 @@ def learn(env, agent, optimizer, scheduler, comm,
         seg = next(seg_gen)
         add_vtarg_and_adv(seg, gamma, lam)
 
-        ob, ac, logprobs, adv, tdlamret = seg["ob"], seg["ac"], seg['logprobs'], seg["adv"], seg["tdlamret"]
+        ob, ac, logprobs, adv, tdlamret = seg["ob"], seg["ac"], seg["logprobs"], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"]  # predicted value function before udpate
         adv = (adv - adv.mean()) / adv.std()  # standardized advantage function estimate
         d = Dataset(dict(ob=ob, ac=ac, logprobs=logprobs, adv=adv, vtarg=tdlamret), deterministic=False) # nonrecurrent
