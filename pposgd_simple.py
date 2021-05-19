@@ -134,7 +134,7 @@ def compute_losses(batch, agent, entcoeff, clip_param):
     clipped_policy_ratio = tc.clip(policy_ratio, 1.0 - clip_param, 1.0 + clip_param)
     surr1 = mb_advs * policy_ratio
     surr2 = mb_advs * clipped_policy_ratio
-    pol_surr = -tc.mean(tc.min(surr1, surr2))
+    pol_surr = -tc.mean(tc.minimum(surr1, surr2))
     vf_loss = tc.mean(tc.square(mb_vtargs - mb_vpred_new))
 
     kl_fake = meanent
