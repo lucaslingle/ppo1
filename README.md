@@ -12,7 +12,7 @@ to ensure the step size is at most a certain amount. This is done using conjugat
 to ensure the step taken in parameter space leads to a policy whose state-averaged KL divergence to the previous policy is not larger than a certain amount. 
 
 Compared to vanilla policy gradients and/or actor-critic methods, the PPO algorithm enjoys the following favorable properties:
-- Improved data efficiency
+- Improved sample efficiency
 - Improved stability
 - Improved reusability of collected experience
 
