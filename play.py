@@ -7,7 +7,7 @@ def play(env, agent, comm, args):
         t = 0
         total_reward = 0.0
         o_t = env.reset()
-        while t < args.max_timesteps:
+        while t < args.env_steps:
             _ = env.render()
             pi_dist, vpred = agent(tc.tensor(o_t).float().unsqueeze(0))
             a_t = pi_dist.sample()
