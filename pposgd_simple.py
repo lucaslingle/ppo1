@@ -121,7 +121,7 @@ def compute_losses(batch, agent, entcoeff, clip_param):
     mb_vtargs = tc.tensor(mb_vtargs).float().detach()
 
     # evaluate observations using agent
-    mb_pi_dist, mb_vpred_new, mb_agent_info_dict = agent(mb_obs)
+    mb_pi_dist, mb_vpred_new = agent(mb_obs)
     mb_logpi_new = mb_pi_dist.log_prob(mb_acs)
 
     # entropy
