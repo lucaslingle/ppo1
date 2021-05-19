@@ -128,4 +128,4 @@ class ValueHead(tc.nn.Module):
                 tc.nn.init.zeros_(m.bias)
 
     def forward(self, features):
-        return self.value_head(features)
+        return self.value_head(features).squeeze(-1)  # avoids broadcast bug later
