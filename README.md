@@ -4,7 +4,7 @@ Pytorch port of [OpenAI baselines ppo1](https://github.com/openai/baselines/tree
 ### Background
 Proximal Policy Optimization is a reinforcement learning algorithm proposed by [Schulman et al., 2017](https://arxiv.org/abs/1707.06347). 
 Compared to vanilla policy gradients and/or actor-critic methods, which optimize the model parameters by estimating the gradient of the reward surface
-and taking a single step, PPO takes inspiration from an approximate natural policy gradient algorithm known as TRPO, and takes multiple steps on collected experience. 
+and taking a single step, PPO takes inspiration from an approximate natural policy gradient algorithm known as TRPO.
 
 TRPO is an example of an information-geometric trust region method, which aims to improve the policy by taking steps of a constant maximum size on the manifold of possible policies.
 The metric utilized in TRPO is the state-averaged KL divergence under the current policy; taking steps under TRPO amounts to solving a constrained optimization problem 
