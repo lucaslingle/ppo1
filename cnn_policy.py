@@ -42,39 +42,28 @@ class CnnPolicy(tc.nn.Module):
         super().__init__()
         self.num_actions = num_actions
         self.feature_dim = 512 if kind == 'large' else 256
-        self.conv_stack = tc.nn.ModuleList()
         if kind == 'small':
-            self.conv_stack.append(tc.nn.Sequential(
+            self.conv_stack = tc.nn.Sequential(
                 tc.nn.Conv2d(img_channels, 16, kernel_size=(8, 8), stride=(4, 4)),
-                tc.nn.ReLU()
-            ))
-            self.conv_stack.append(tc.nn.Sequential(
+                tc.nn.ReLU(),
                 tc.nn.Conv2d(16, 32, kernel_size=(4, 4), stride=(2, 2)),
-                tc.nn.ReLU()
-            ))
-            self.conv_stack.append(tc.nn.Sequential(
+                tc.nn.ReLU(),
                 tc.nn.Flatten(),
                 tc.nn.Linear(2592, self.feature_dim),
                 tc.nn.ReLU()
-            ))
+            )
         elif kind == 'large':
-            self.conv_stack.append(tc.nn.Sequential(
+            self.conv_stack = tc.nn.Sequential(
                 tc.nn.Conv2d(img_channels, 32, kernel_size=(8, 8), stride=(4, 4)),
-                tc.nn.ReLU()
-            ))
-            self.conv_stack.append(tc.nn.Sequential(
+                tc.nn.ReLU(),
                 tc.nn.Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2)),
-                tc.nn.ReLU()
-            ))
-            self.conv_stack.append(tc.nn.Sequential(
+                tc.nn.ReLU(),
                 tc.nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1)),
-                tc.nn.ReLU()
-            ))
-            self.conv_stack.append(tc.nn.Sequential(
+                tc.nn.ReLU(),
                 tc.nn.Flatten(),
                 tc.nn.Linear(3136, self.feature_dim),
                 tc.nn.ReLU()
-            ))
+            )
         else:
             raise NotImplementedError
 
@@ -95,25 +84,10 @@ class CnnPolicy(tc.nn.Module):
         x = x / 255.
         x = x.permute(0, 3, 1, 2)
         x = x.detach()
-
-        numnonzeroacts = tc.zeros(size=(x.shape[0],), dtype=tc.float32)
-        numacts = tc.zeros(size=(x.shape[0],), dtype=tc.float32)
-        act = x
-        for s in self.conv_stack:
-            act = s(act)
-            numacts += tc.sum(tc.ones_like(tc.nn.Flatten()(act)), dim=-1)
-            numnonzeroacts += tc.sum(tc.greater(tc.nn.Flatten()(act), tc.zeros_like(tc.nn.Flatten()(act))), dim=-1)
-
-        features = act
+        features = self.conv_stack(x)
         dist_pi = self.policy_head(features)
         vpred = self.value_head(features)
-
-        featurenorm = tc.sqrt(1e-8 + tc.sum(tc.square(features), dim=-1))
-        agent_info = {
-            'featurenorm': featurenorm,
-            'fracnonzeroact': numnonzeroacts / numacts
-        }
-        return dist_pi, vpred, agent_info
+        return dist_pi, vpred
 
 
 class PolicyHead(tc.nn.Module):

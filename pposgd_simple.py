@@ -162,7 +162,6 @@ def learn(env, agent, optimizer, scheduler, comm,
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "ent"]
-    metric_names = loss_names + ["gradnorm", "featurenorm", "fracnonzeroact", "clipfrac"]
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
 
@@ -187,7 +186,7 @@ def learn(env, agent, optimizer, scheduler, comm,
         d = Dataset(dict(ob=ob, ac=ac, logprobs=logprobs, adv=adv, vtarg=tdlamret), deterministic=False) # nonrecurrent
 
         logger.log("Optimizing...")
-        logger.log(fmt_row(13, metric_names))
+        logger.log(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
         agent.train()
         for _ in range(optim_epochs):
@@ -210,8 +209,7 @@ def learn(env, agent, optimizer, scheduler, comm,
                 gradient_steps_so_far += 1
 
                 # sync agent parameters from process with rank zero. should stay synced automatically,
-                # this is just a failsafe if gradient allreduce ops have any nondeterminism
-                # due to non-associativity of floating point arithmetic.
+                # this is just a failsafe
                 if gradient_steps_so_far > 0 and gradient_steps_so_far % 100 == 0:
                     with tc.no_grad():
                         for p in agent.parameters():
