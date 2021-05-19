@@ -16,7 +16,6 @@ from common.console_util import fmt_row
 from common.misc_util import zipsame
 from common.mpi_moments import mpi_moments
 import logger
-import mmh3
 
 
 @tc.no_grad()
@@ -43,14 +42,10 @@ def traj_segment_generator(agent, env, horizon):
     agent.eval()
     while True:
         prevac = ac
-        dist_pi, vpred = agent(tc.tensor(ob).float().unsqueeze(0))
+        pi_dist, vpred, _ = agent(tc.tensor(ob).float().unsqueeze(0))
 
-        # bad perf got me paranoid about torch random number generator like
-        seed = mmh3.hash(str(MPI.COMM_WORLD.Get_rank())) ^ mmh3.hash(ob) ^ mmh3.hash(str(time.perf_counter()))
-        tc.manual_seed(seed)
-
-        ac = dist_pi.sample()
-        logprob = dist_pi.log_prob(ac)
+        ac = pi_dist.sample()
+        logprob = pi_dist.log_prob(ac)
 
         ac = ac.squeeze(0).detach().numpy()
         logprob = logprob.squeeze(0).detach().numpy()
@@ -111,34 +106,40 @@ def add_vtarg_and_adv(seg, gamma, lam):
 
 
 def compute_losses(batch, agent, entcoeff, clip_param):
+    # get relevant info from minibatch dict
     mb_obs = batch["ob"]
     mb_acs = batch["ac"]
     mb_logpi_old = batch["logprobs"]
     mb_advs = batch["adv"]
     mb_vtargs = batch["vtarg"]
 
+    # cast to correct type
     mb_obs = tc.tensor(mb_obs).float().detach()
     mb_acs = tc.tensor(mb_acs).long().detach()
     mb_logpi_old = tc.tensor(mb_logpi_old).float().detach()
     mb_advs = tc.tensor(mb_advs).float().detach()
     mb_vtargs = tc.tensor(mb_vtargs).float().detach()
 
-    mb_dist_pi, mb_vpred_new = agent(mb_obs)
-    mb_logpi_new = mb_dist_pi.log_prob(mb_acs)
+    # evaluate observations using agent
+    mb_pi_dist, mb_vpred_new, mb_agent_info_dict = agent(mb_obs)
+    mb_logpi_new = mb_pi_dist.log_prob(mb_acs)
 
-    ent = mb_dist_pi.entropy()
+    # entropy
+    ent = mb_pi_dist.entropy()
     meanent = tc.mean(ent)
     pol_entpen = (-entcoeff) * meanent
 
+    # ppo policy loss
     policy_ratio = tc.exp(mb_logpi_new - mb_logpi_old)
     clipped_policy_ratio = tc.clip(policy_ratio, 1.0 - clip_param, 1.0 + clip_param)
     surr1 = mb_advs * policy_ratio
     surr2 = mb_advs * clipped_policy_ratio
     pol_surr = -tc.mean(tc.minimum(surr1, surr2))
+
+    # ppo value loss
     vf_loss = tc.mean(tc.square(mb_vtargs - mb_vpred_new))
 
-    kl_fake = meanent
-    return pol_surr, pol_entpen, vf_loss, kl_fake, meanent
+    return pol_surr, pol_entpen, vf_loss, meanent
 
 
 def learn(env, agent, optimizer, scheduler, comm,
@@ -156,10 +157,12 @@ def learn(env, agent, optimizer, scheduler, comm,
     episodes_so_far = 0
     timesteps_so_far = 0
     iters_so_far = 0
+    gradient_steps_so_far = 0
     tstart = time.time()
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
-    loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl_fake", "ent"]
+    loss_names = ["pol_surr", "pol_entpen", "vf_loss", "ent"]
+    metric_names = loss_names + ["gradnorm", "featurenorm", "fracnonzeroact", "clipfrac"]
 
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
 
@@ -184,39 +187,44 @@ def learn(env, agent, optimizer, scheduler, comm,
         d = Dataset(dict(ob=ob, ac=ac, logprobs=logprobs, adv=adv, vtarg=tdlamret), deterministic=False) # nonrecurrent
 
         logger.log("Optimizing...")
-        logger.log(fmt_row(13, loss_names))
+        logger.log(fmt_row(13, metric_names))
         # Here we do a bunch of optimization epochs over the data
         agent.train()
         for _ in range(optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                pol_surr, pol_entpen, vf_loss, kl_fake, ent = compute_losses(batch, agent, entcoeff, clip_param)
+                pol_surr, pol_entpen, vf_loss, ent = compute_losses(batch, agent, entcoeff, clip_param)
                 total_loss = pol_surr + pol_entpen + vf_loss
 
                 optimizer.zero_grad()
                 total_loss.backward()
                 with tc.no_grad():
-                    gradnorm2 = 0.0
                     for p in agent.parameters():
                         g_old = p.grad.numpy()
                         g_new = np.zeros_like(g_old)
                         comm.Allreduce(sendbuf=g_old, recvbuf=g_new, op=MPI.SUM)
-                        g_new = g_new / comm.Get_size()
-                        gradnorm2 += np.sum(np.square(g_new))
-                        p.grad.copy_(tc.tensor(g_new).float())
-                    if comm.Get_rank() == 0:
-                        print(f"gradnorm: {np.sqrt(gradnorm2)}")
+                        p.grad.copy_(tc.tensor(g_new).float() / comm.Get_size())
 
                 optimizer.step()
                 scheduler.step()
+                gradient_steps_so_far += 1
 
-                newlosses = [
+                # sync agent parameters from process with rank zero. should stay synced automatically,
+                # this is just a failsafe if gradient allreduce ops have any nondeterminism
+                # due to non-associativity of floating point arithmetic.
+                if gradient_steps_so_far > 0 and gradient_steps_so_far % 100 == 0:
+                    with tc.no_grad():
+                        for p in agent.parameters():
+                            p_data = p.data.numpy()
+                            comm.Bcast(p_data, root=0)
+                            p.data.copy_(tc.tensor(p_data).float())
+
+                newlosses = (
                     pol_surr.detach().numpy(),
                     pol_entpen.detach().numpy(),
                     vf_loss.detach().numpy(),
-                    kl_fake.detach().numpy(),
                     ent.detach().numpy()
-                ]
+                )
                 losses.append(newlosses)
             logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
