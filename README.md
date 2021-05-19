@@ -1,2 +1,2 @@
 # ppo1
-Pytorch port of ppo1, supporting parallel experience collection. 
+Pytorch port of OpenAI baselines ppo1, supporting parallel experience collection. 
