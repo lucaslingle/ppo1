@@ -1,7 +1,7 @@
 # ppo1
 Pytorch port of [OpenAI baselines ppo1](https://github.com/openai/baselines/tree/master/baselines/ppo1), supporting parallel experience collection. 
 
-### Background
+## Background
 Proximal Policy Optimization is a reinforcement learning algorithm proposed by [Schulman et al., 2017](https://arxiv.org/abs/1707.06347). 
 Compared to vanilla policy gradients and/or actor-critic methods, which optimize the model parameters by estimating the gradient of the reward surface
 and taking a single step, PPO takes inspiration from an approximate natural policy gradient algorithm known as TRPO.
@@ -26,7 +26,7 @@ It also requires gradient clipping with a maximum gradient norm of 0.5, which is
 
 Thus, ppo1 is in some respects a much more general algorithm. 
 
-### Getting Started
+## Getting Started
 
 Install the following system dependencies:
 ##### Ubuntu     
