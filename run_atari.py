@@ -17,17 +17,17 @@ def parse_args():
     p.add_argument('--mode', choices=['train', 'play'], default='train')
     p.add_argument('--env_name', type=str, default='PongNoFrameskip-v4', help='Environment name')
     p.add_argument('--env_steps', type=int, default=int(10 * 1e6))
-    p.add_argument('--timesteps_per_actorbatch', type=int, default=256)
+    p.add_argument('--timesteps_per_actorbatch', type=int, default=128)
     p.add_argument('--gamma', type=float, default=0.99, help='Discount factor')
     p.add_argument('--lam', type=float, default=0.95, help='Decay param for GAE')
-    p.add_argument('--epsilon', type=float, default=0.2, help='Clip param for PPO')
+    p.add_argument('--epsilon', type=float, default=0.1, help='Clip param for PPO')
     p.add_argument('--ent_coef', type=float, default=0.01, help='Entropy bonus coefficient')
-    p.add_argument('--optim_epochs', type=int, default=4, help='Epochs per policy improvement phase')
-    p.add_argument('--optim_stepsize', type=float, default=0.001, help='Adam stepsize parameter')
-    p.add_argument('--optim_batchsize', type=int, default=64, help='State samples per gradient step per actor')
+    p.add_argument('--optim_epochs', type=int, default=3, help='Epochs per policy improvement phase')
+    p.add_argument('--optim_stepsize', type=float, default=0.00025, help='Adam stepsize parameter')
+    p.add_argument('--optim_batchsize', type=int, default=32, help='State samples per gradient step per actor')
     p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for checkpoints generated')
-    p.add_argument('--model_name', type=str, default='model-ppo1-defaults', help='Model name used for checkpoints')
-    p.add_argument('--model_size', choices=['small', 'large'], default='large')
+    p.add_argument('--model_name', type=str, default='model-ppo1-paper-defaults', help='Model name used for checkpoints')
+    p.add_argument('--model_size', choices=['small', 'large'], default='small')
     p.add_argument('--seed', type=float, default=None)
     args = p.parse_args()
     return args
@@ -57,7 +57,7 @@ def main(args):
     env = Monitor(env, logger.get_dir() and
               os.path.join(logger.get_dir(), str(rank)))
 
-    env = wrap_deepmind(env)
+    env = wrap_deepmind(env, frame_stack=True)
     env.seed(workerseed)
 
     # agent.

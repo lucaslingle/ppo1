@@ -148,7 +148,8 @@ def learn(env, agent, optimizer, scheduler, comm,
         optim_epochs, optim_batchsize, # optimization hypers
         gamma, lam, # advantage estimation
         checkpoint_dir, model_name,
-        max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0):
+        max_timesteps=0, max_episodes=0, max_iters=0, max_seconds=0, schedule='linear'
+    ):
 
     # Prepare for rollouts
     # ----------------------------------------
@@ -177,6 +178,12 @@ def learn(env, agent, optimizer, scheduler, comm,
 
         logger.log("********** Iteration %i ************"%iters_so_far)
 
+        epsilon_mult_dict = {
+            'constant': 1.0,
+            'linear': max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+        }
+        current_clip_param = epsilon_mult_dict[schedule] * clip_param
+
         seg = next(seg_gen)
         add_vtarg_and_adv(seg, gamma, lam)
 
@@ -192,7 +199,7 @@ def learn(env, agent, optimizer, scheduler, comm,
         for _ in range(optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                pol_surr, pol_entpen, vf_loss, ent = compute_losses(batch, agent, entcoeff, clip_param)
+                pol_surr, pol_entpen, vf_loss, ent = compute_losses(batch, agent, entcoeff, current_clip_param)
                 total_loss = pol_surr + pol_entpen + vf_loss
 
                 optimizer.zero_grad()
@@ -229,7 +236,7 @@ def learn(env, agent, optimizer, scheduler, comm,
         logger.log("Evaluating losses...")
         losses = []
         for batch in d.iterate_once(optim_batchsize):
-            newlosses = compute_losses(batch, agent, entcoeff, clip_param)
+            newlosses = compute_losses(batch, agent, entcoeff, current_clip_param)
             losses.append(tuple(list(map(lambda loss: loss.detach().numpy(), list(newlosses)))))
         meanlosses,_,_ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
