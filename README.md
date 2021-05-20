@@ -8,7 +8,7 @@ and taking a single step, PPO takes inspiration from an approximate natural poli
 
 [TRPO](https://arxiv.org/abs/1502.05477) is an example of an information-geometric trust region method, which aims to improve the policy by taking steps of a constant maximum size on the manifold of possible policies.
 The metric utilized in TRPO is the state-averaged KL divergence under the current policy; taking steps under TRPO amounts to solving a constrained optimization problem 
-to ensure the step size is at most a certain amount. This is done using conjugate gradient ascent to compute the (approximate) natural gradient, followed by a line search 
+to ensure the step size is at most a certain amount. This is done using conjugate gradient descent to compute the (approximate) natural gradient, followed by a line search 
 to ensure the step taken in parameter space leads to a policy whose state-averaged KL divergence to the previous policy is not larger than a certain amount. 
 
 Compared to vanilla policy gradients and/or actor-critic methods, the PPO algorithm enjoys the following favorable properties:
