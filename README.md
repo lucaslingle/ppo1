@@ -27,3 +27,28 @@ It also requires gradient clipping with a maximum gradient norm of 0.5, which is
 Thus, ppo1 is in some respects a much more general algorithm. 
 
 ### Getting Started
+
+Install the following system dependencies:
+##### Ubuntu     
+```bash
+sudo apt-get update && sudo apt-get install cmake libopenmpi-dev python3-dev zlib1g-dev
+```
+
+##### Mac OS X
+Installation of system packages on Mac requires [Homebrew](https://brew.sh). With Homebrew installed, run the following:
+```bash
+brew install cmake openmpi
+```
+
+Install the conda package manager from https://docs.conda.io/en/latest/miniconda.html
+
+Then run
+``` 
+conda create --name ppo1 python=3.8.1
+conda activate ppo1
+git clone https://github.com/lucaslingle/ppo1
+cd ppo1
+conda install --file requirements.txt
+```
+
+
