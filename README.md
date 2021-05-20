@@ -67,7 +67,7 @@ To see additional options, you can simply type ```python run_atari.py --help```.
 and this implementation will support it. 
 
 #### Checkpoints
-By default, checkpoints are saved to ```./checkpoints/model-ppo-defaults```. To pick a different checkpoint directory, 
+By default, checkpoints are saved to ```./checkpoints/model-ppo1-defaults```. To pick a different checkpoint directory, 
 you can set the ```--checkpoint_dir``` flag, and to pick a different checkpoint name, you can set the ```--model_name``` flag.
 
 #### Play
