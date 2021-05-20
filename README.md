@@ -41,6 +41,7 @@ brew install cmake openmpi
 ```
 
 ##### Everyone
+Once the system dependencies have been installed, it's time to install the python dependencies. 
 Install the conda package manager from https://docs.conda.io/en/latest/miniconda.html
 
 Then run
