@@ -90,5 +90,5 @@ Over 90% of the code in this repo comes from OpenAI baselines. That said, in por
 * Single network only. We store only one set of model parameters, rather than two. Instead of maintaining an old network to compute the demoninators for the policy ratio, we save the relevant quantities during experience collection. This makes the implementation more lightweight without affecting the underlying computation.
 * No kl divergence logging. We do not log the approximate KL divergence between the old policy and the new one, since this would require storing the entire vector of policy probabilities during experience collection. However, support for this can be easily added.
 
-Huge thanks to OpenAI for releasing and maintaining baselines and the ppo1 implementation!
+Huge thanks to OpenAI for releasing and maintaining baselines and the ppo1 implementation! 
 
