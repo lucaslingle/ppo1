@@ -16,7 +16,7 @@ def parse_args():
     p = argparse.ArgumentParser(description='Pytorch port of ppo1 for Atari.')
     p.add_argument('--mode', choices=['train', 'play'], default='train')
     p.add_argument('--env_name', type=str, default='PongNoFrameskip-v4', help='Environment name')
-    p.add_argument('--env_steps', type=int, default=int(10 * 1e6))
+    p.add_argument('--env_steps', type=int, default=int(40 * 1e6))
     p.add_argument('--timesteps_per_actorbatch', type=int, default=128)
     p.add_argument('--gamma', type=float, default=0.99, help='Discount factor')
     p.add_argument('--lam', type=float, default=0.95, help='Decay param for GAE')
