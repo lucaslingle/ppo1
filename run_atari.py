@@ -15,7 +15,7 @@ from play import play
 def parse_args():
     p = argparse.ArgumentParser(description='Pytorch port of ppo1 for Atari.')
     p.add_argument('--mode', choices=['train', 'play'], default='train')
-    p.add_argument('--env_name', type=str, default='PongNoFrameskip-v4', help='Environment name')
+    p.add_argument('--env_name', type=str, default='BreakoutNoFrameskip-v4', help='Environment name')
     p.add_argument('--env_steps', type=int, default=int(40 * 1e6))
     p.add_argument('--timesteps_per_actorbatch', type=int, default=128)
     p.add_argument('--gamma', type=float, default=0.99, help='Discount factor')
@@ -26,9 +26,9 @@ def parse_args():
     p.add_argument('--optim_stepsize', type=float, default=0.00025, help='Adam stepsize parameter')
     p.add_argument('--optim_batchsize', type=int, default=32, help='State samples per gradient step per actor')
     p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for checkpoints generated')
-    p.add_argument('--model_name', type=str, default='model-ppo1-paper-defaults', help='Model name used for checkpoints')
-    p.add_argument('--model_size', choices=['small', 'large'], default='small')
-    p.add_argument('--seed', type=float, default=None)
+    p.add_argument('--model_name', type=str, default='model-ppo-paper-defaults', help='Model name used for checkpoints')
+    p.add_argument('--model_size', choices=['small', 'large'], default='large')
+    p.add_argument('--seed', type=float, default=0)
     args = p.parse_args()
     return args
 

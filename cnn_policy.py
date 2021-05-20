@@ -94,12 +94,12 @@ class PolicyHead(tc.nn.Module):
     """Reference:
     https://github.com/openai/baselines/blob/master/baselines/ppo1/cnn_policy.py#L36
     """
-    def __init__(self, num_features, num_actions):
+    def __init__(self, feature_dim, num_actions):
         super().__init__()
-        self.num_features = num_features
+        self.feature_dim = feature_dim
         self.num_actions = num_actions
         self.policy_head = tc.nn.Sequential(
-            tc.nn.Linear(self.num_features, self.num_actions),
+            tc.nn.Linear(self.feature_dim, self.num_actions)
         )
         for m in self.policy_head.modules():
             if isinstance(m, tc.nn.Linear):
@@ -116,11 +116,11 @@ class ValueHead(tc.nn.Module):
     """Reference:
     https://github.com/openai/baselines/blob/master/baselines/ppo1/cnn_policy.py#L38
     """
-    def __init__(self, num_features):
+    def __init__(self, feature_dim):
         super().__init__()
-        self.num_features = num_features
+        self.feature_dim = feature_dim
         self.value_head = tc.nn.Sequential(
-            tc.nn.Linear(self.num_features, 1)
+            tc.nn.Linear(self.feature_dim, 1)
         )
 
         for m in self.value_head.modules():
