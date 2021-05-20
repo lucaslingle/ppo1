@@ -63,7 +63,7 @@ mpirun -np 8 python -m run_atari --env_name='PongNoFrameskip-v4'
 This will launch 8 parallel processes, each running the ```run_atari.py``` script. These processes will play the OpenAI gym environment 'PongNoFrameskip-v4' in parallel, 
 and communicate gradient information and synchronize parameters using [OpenMPI](https://www.open-mpi.org/).
 
-To see additional options, you can simply type ```python run_atari.py --help```. In particular, you can pick any other Atari 2600 game supported by OpenAI gym, 
+To see additional options, you can simply type ```python run_atari.py --help```. In particular, you can pick any other Atari 2600 game supported by [OpenAI gym](https://github.com/openai/gym), 
 and this implementation will support it. 
 
 #### Checkpoints
