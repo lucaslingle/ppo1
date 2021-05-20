@@ -29,18 +29,18 @@ Thus, ppo1 is in some respects a much more general algorithm.
 ## Getting Started
 
 Install the following system dependencies:
-##### Ubuntu     
+#### Ubuntu     
 ```bash
 sudo apt-get update && sudo apt-get install cmake libopenmpi-dev python3-dev zlib1g-dev
 ```
 
-##### Mac OS X
+#### Mac OS X
 Installation of system packages on Mac requires [Homebrew](https://brew.sh). With Homebrew installed, run the following:
 ```bash
 brew install cmake openmpi
 ```
 
-##### Everyone
+#### Everyone
 Once the system dependencies have been installed, it's time to install the python dependencies. 
 Install the conda package manager from https://docs.conda.io/en/latest/miniconda.html
 
