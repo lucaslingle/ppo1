@@ -40,6 +40,7 @@ Installation of system packages on Mac requires [Homebrew](https://brew.sh). Wit
 brew install cmake openmpi
 ```
 
+##### Everyone
 Install the conda package manager from https://docs.conda.io/en/latest/miniconda.html
 
 Then run
