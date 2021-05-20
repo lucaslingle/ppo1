@@ -27,7 +27,7 @@ def parse_args():
     p.add_argument('--optim_batchsize', type=int, default=32, help='State samples per gradient step per actor')
     p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for checkpoints generated')
     p.add_argument('--model_name', type=str, default='model-ppo-paper-defaults', help='Model name used for checkpoints')
-    p.add_argument('--model_size', choices=['small', 'large'], default='large')
+    p.add_argument('--model_size', choices=['small', 'large'], default='small')
     p.add_argument('--seed', type=float, default=0)
     args = p.parse_args()
     return args
