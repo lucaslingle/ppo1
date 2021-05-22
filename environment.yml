@@ -40,6 +40,7 @@ dependencies:
     - lockfile==0.12.2
     - matplotlib==3.4.1
     - mccabe==0.6.1
+    - moviepy==1.0.0
     - mpi4py==3.0.3
     - murmurhash3==2.3.5
     - mypy-extensions==0.4.3
