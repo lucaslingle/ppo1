@@ -40,7 +40,7 @@ sudo apt-get install -y cmake libopenmpi-dev python3-dev zlib1g-dev
 ```
 
 #### Mac OS X
-Installation of system packages on Mac requires [Homebrew](https://brew.sh). With Homebrew installed, run the following:
+Installation of the system packages on Mac requires [Homebrew](https://brew.sh). With Homebrew installed, run the following:
 ```bash
 brew install cmake openmpi
 ```
