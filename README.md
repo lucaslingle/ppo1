@@ -23,7 +23,7 @@ Compared to TRPO, proximal policy optimization is considerably simpler, easier t
 This repo implements the current commit of OpenAI baselines' ppo1 (commit 8a97e0d); ppo1 was originally released as the reference implementation for Schulman et al., 2017. 
 
 There is also a ppo2, but it performs poorly compared to ppo1 on games like Pong, and the reason for its release was, to our knowledge, never provided. 
-Furthermore, it relies on a clipping heuristic to construct a pessimistic value function, and the efficacy of the value clipping heuristic depends on the scale of the rewards.
+Furthermore, it relies on a clipping heuristic to construct a pessimistic value function loss, and the efficacy of the value clipping heuristic depends on the scale of the rewards.
 Although it works for environments found in the Atari 2600 suite, it requires a reward wrapper that clips the rewards to [-1, 1], which could be unacceptable in some domains.
 It also requires gradient clipping with a maximum gradient norm of 0.5, which is only acceptable for some architectures.
 
