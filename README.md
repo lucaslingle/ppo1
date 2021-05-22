@@ -94,5 +94,5 @@ Over 90% of the code in this repo comes from OpenAI baselines. That said, in por
 * No kl divergence logging. We do not log the approximate KL divergence between the old policy and the new one, since this would require storing the entire vector of policy probabilities during experience collection. However, support for this can be easily added.
 * We add a framestack of size 4 to the wrapped environments. This frame stacking operation is distinct from frame skipping (see [here](https://danieltakeshi.github.io/2016/11/25/frame-skipping-and-preprocessing-for-deep-q-networks-on-atari-2600-games/)), and is useful in some games to infer the direction of moving objects. It is currently absent from the latest commit of ppo1, although frame stacking [is standard](https://github.com/openai/baselines/blob/master/baselines/run.py#L103) in the other baselines algorithms, and was originally present in the [initial commit](https://github.com/openai/baselines/commit/d9f194f797f406969f454ba7338c798c14cff01e#diff-c9410d962ac09d675492e6638b87de62271d27cf85ef07e584a861e27d633b98) of ppo1. Frame stacking is required to obtain good performance on games like Breakout. 
 
-Huge thanks to OpenAI for maintaining baselines and releasing the ppo1 implementation! 
+Huge thanks to OpenAI for maintaining baselines and releasing the ppo1 implementation!
 
