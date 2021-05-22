@@ -10,11 +10,12 @@ from bench.monitor import Monitor
 from cnn_policy import CnnPolicy
 from pposgd_simple import learn
 from play import play
+from movie import movie
 
 
 def parse_args():
     p = argparse.ArgumentParser(description='Pytorch port of ppo1 for Atari.')
-    p.add_argument('--mode', choices=['train', 'play'], default='train')
+    p.add_argument('--mode', choices=['train', 'play', 'movie'], default='movie')
     p.add_argument('--env_name', type=str, default='BreakoutNoFrameskip-v4', help='Environment name')
     p.add_argument('--env_steps', type=int, default=int(40 * 1e6))
     p.add_argument('--timesteps_per_actorbatch', type=int, default=128)
@@ -25,10 +26,12 @@ def parse_args():
     p.add_argument('--optim_epochs', type=int, default=3, help='Epochs per policy improvement phase')
     p.add_argument('--optim_stepsize', type=float, default=0.00025, help='Adam stepsize parameter')
     p.add_argument('--optim_batchsize', type=int, default=32, help='State samples per gradient step per actor')
-    p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for checkpoints generated')
-    p.add_argument('--model_name', type=str, default='model-ppo-paper-defaults', help='Model name used for checkpoints')
-    p.add_argument('--model_size', choices=['small', 'large'], default='small')
     p.add_argument('--seed', type=float, default=0)
+    p.add_argument('--model_type', choices=['small', 'large'], default='small')
+    p.add_argument('--model_name', type=str, default='model-ppo-paper-defaults', help='Model name used for checkpoints')
+    p.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Dir name for checkpoints generated')
+    p.add_argument('--asset_dir', type=str, default='assets', help='Dir name for checkpoints generated')
+    p.add_argument('--no_frame_stacking', dest='frame_stacking', action='store_false')
     args = p.parse_args()
     return args
 
@@ -56,15 +59,15 @@ def main(args):
     env.seed(workerseed)
     env = Monitor(env, logger.get_dir() and
               os.path.join(logger.get_dir(), str(rank)))
-
-    env = wrap_deepmind(env, frame_stack=True)
+    print(f"frame_stacking: {args.frame_stacking}")
+    env = wrap_deepmind(env, frame_stack=args.frame_stacking, clip_rewards=(args.mode =='train'))
     env.seed(workerseed)
 
     # agent.
     agent = CnnPolicy(
         img_channels=env.observation_space.shape[-1],
         num_actions=env.action_space.n,
-        kind=args.model_size)
+        kind=args.model_type)
 
     # optimizer and scheduler.
     max_grad_steps = args.optim_epochs * args.env_steps // (comm.Get_size() * args.optim_batchsize)
@@ -101,8 +104,14 @@ def main(args):
         env.close()
 
     elif args.mode == 'play':
-        play(env=env, agent=agent, comm=comm, args=args)
-        env.close()
+        if comm.Get_rank() == 0:
+            play(env=env, agent=agent, args=args)
+            env.close()
+
+    elif args.mode == 'movie':
+        if comm.Get_rank() == 0:
+            movie(env=env, agent=agent, args=args)
+            env.close()
 
     else:
         raise NotImplementedError("Mode of operation not supported!")
