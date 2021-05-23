@@ -35,7 +35,7 @@ Although it works for environments found in the Atari 2600 suite, it requires a 
 It also requires gradient clipping with a maximum gradient norm of 0.5, which is only acceptable for some architectures, and for the architecture used in the paper it corresponds to about half the norm of the unclipped gradient throughout training. The logging for clipfrac is also incorrect, and neglects to account for how PPO conditions on the sign of the advantages when making clipping decisions. 
 
 Thus, ppo1 is in some respects a much more general algorithm, appears to have been written by John Schulman himself, and offers superior performance out of the box. 
-For anyone seeking to reproduce the results of the PPO paper--or to obtain a high performing deep reinforcement learning algorithm more generally--the ppo1 variant is the obvious choice. 
+For anyone seeking to reproduce the results of the PPO paper--or to obtain a simple and effective deep reinforcement learning algorithm more generally--the ppo1 variant is the obvious choice. 
 
 ## Getting Started
 
@@ -103,7 +103,6 @@ Over 90% of the code in this repo comes from OpenAI baselines. That said, in por
 * Framestack. We add a frame stack of size 4 to the wrapped environments. This frame stacking operation is distinct from frame skipping (see [here](https://danieltakeshi.github.io/2016/11/25/frame-skipping-and-preprocessing-for-deep-q-networks-on-atari-2600-games/)), and is useful in some games to infer the direction of moving objects. It is currently absent from the latest commit of ppo1, although frame stacking is standard in the other baselines algorithms [[5]](https://github.com/openai/baselines//blob/master/baselines/run.py#L103), and was originally present in the initial commit of ppo1 [[6]](https://github.com/openai/baselines/commit/d9f194f797f406969f454ba7338c798c14cff01e#diff-c9410d962ac09d675492e6638b87de62271d27cf85ef07e584a861e27d633b98). Frame stacking is required to obtain good performance on several games.
 * Clip parameter annealing. This implementation follows the Atari hyperparameters provided by Schulman et al., 2017 for Atari, and thus includes the linear annealing of the PPO clip parameters to zero over the course of training. This was initially implemented in ppo1, but was later removed from ppo1 by another developer without any explanation in the accompanying commit message [[7]](https://github.com/openai/baselines/commit/b875fb7b5e4feb85b9f1f1bf4e78f64c75595664#diff-2f263fbd5f052e380abdb769c1c359fb462d0ff0c1b3a93f17747dc993105a33). 
 * Standard value function loss. We use the standard mean-squared error loss function, following Schulman et al., 2017. In the initial public commit of ppo1, the pessimistic value loss was used, but this was later moved to ppo2, and does not appear in their paper, and does not appear to be not necessary to reproduce their results. 
-* Video Recording. Original implementation for saving video footage of the trained agent. 
+* Video Recording. Original implementation for saving video footage of the trained agent.
 
 Huge thanks to OpenAI for maintaining baselines and releasing the ppo1 implementation!
-
