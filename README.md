@@ -4,7 +4,7 @@ Pytorch port of [OpenAI baselines ppo1](https://github.com/openai/baselines/tree
 ![pong gif](assets/model-ppo1-defaults/pong.gif)
 ![breakout gif](assets/breakout-ppo-paper-defaults/breakout.gif)
 ![mspacman gif](assets/mspacman-ppo-paper-defaults/mspacman.gif)
-![beamrider gif](assets/beamrider-ppo-paper-defaults/beamrider.gif)
+![beamrider gif](assets/beamrider-ppo-paper-defaults/00cb1b6f-7847-4132-a2fe-95eed6975c05.gif)
 
 ## Background
 Proximal Policy Optimization is a reinforcement learning algorithm proposed by [Schulman et al., 2017](https://arxiv.org/abs/1707.06347). 
