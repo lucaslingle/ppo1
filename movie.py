@@ -4,10 +4,7 @@ import numpy as np
 import uuid
 import os
 from collections import deque
-import pyglet
 import matplotlib.pyplot as plt
-import copy
-import cv2
 
 
 @tc.no_grad()
@@ -40,7 +37,7 @@ def movie(env, agent, args):
     t = 0
     total_reward = 0.0
     o_t = env.reset()
-    while t < args.env_steps:
+    while t < queue.maxlen:
         pi_dist, vpred = agent(tc.tensor(o_t).float().unsqueeze(0))
         a_t = pi_dist.sample()
         o_tp1, r_t, done_t, _ = env.step(a_t.squeeze(0).detach().numpy())
@@ -53,6 +50,7 @@ def movie(env, agent, args):
         total_reward += r_t
         t += 1
         if done_t:
-            make_video()
             break
         o_t = o_tp1
+
+    make_video()
