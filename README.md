@@ -25,10 +25,10 @@ Compared to vanilla policy gradients and/or actor-critic methods, the PPO algori
 Compared to TRPO, proximal policy optimization is considerably simpler, easier to implement, and allows recurrent policies without any additional complication. 
 This repo implements the current commit of OpenAI baselines' ppo1 (commit 8a97e0d); ppo1 was originally released as the reference implementation for Schulman et al., 2017. 
 
-There is also a ppo2, but it performs worse than [ppo1 across the board](https://htmlpreview.github.io/?https://github.com/openai/baselines/blob/master/benchmarks_atari10M.htm), 
+There is also a ppo2, but it performs worse than [ppo1](https://arxiv.org/pdf/1707.06347.pdf#page=12) [across the board](https://htmlpreview.github.io/?https://github.com/openai/baselines/blob/master/benchmarks_atari10M.htm), 
 and to our knowledge, no convincing reason for its release was ever provided. 
 There are [many differences between ppo1 and ppo2](https://openreview.net/forum?id=r1etN1rtPB), and these differences [are not accounted for](https://github.com/openai/baselines/issues/485#issuecomment-413722708) in the explanation of why ppo2 was released.
-Its inferior performance can be directly attributed to these changes. 
+Our experiments suggest that ppo2's inferior performance can be directly attributed to these changes. 
 In particular, ppo2 relies on a clipping heuristic to construct a pessimistic value function loss, and the efficacy of the value clipping heuristic depends on the scale of the rewards.
 Although it works for environments found in the Atari 2600 suite, it requires a reward wrapper that clips the rewards to [-1, 1], which could be unacceptable in some domains.
 It also requires gradient clipping with a maximum gradient norm of 0.5, which is only acceptable for some architectures, and for the architecture used in the paper it corresponds to about half the norm of the unclipped gradient throughout training. The logging for clipfrac is also incorrect, and neglects to account for how PPO conditions on the sign of the advantages when making clipping decisions.
