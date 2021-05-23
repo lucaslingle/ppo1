@@ -25,7 +25,7 @@ Compared to vanilla policy gradients and/or actor-critic methods, the PPO algori
 Compared to TRPO, proximal policy optimization is considerably simpler, easier to implement, and allows recurrent policies without any additional complication. 
 This repo implements the current commit of OpenAI baselines' ppo1 (commit 8a97e0d); ppo1 was originally released as the reference implementation for Schulman et al., 2017. 
 
-There is also a ppo2, but it performs worse than [ppo1](https://arxiv.org/pdf/1707.06347.pdf#page=12) [across the board](https://htmlpreview.github.io/?https://github.com/openai/baselines/blob/master/benchmarks_atari10M.htm), 
+There is also a [ppo2](https://github.com/openai/baselines/tree/master/baselines/ppo2), but it performs worse than [ppo1](https://arxiv.org/pdf/1707.06347.pdf#page=12) [across the board](https://htmlpreview.github.io/?https://github.com/openai/baselines/blob/master/benchmarks_atari10M.htm), 
 and to our knowledge, no convincing reason for its release was ever provided. 
 There are [many differences between ppo1 and ppo2](https://openreview.net/forum?id=r1etN1rtPB), and these differences [are not accounted for](https://github.com/openai/baselines/issues/485#issuecomment-413722708) in the explanation of why ppo2 was released.
 Our experiments suggest that ppo2's inferior performance can be directly attributed to these changes. 
