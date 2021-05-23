@@ -34,7 +34,7 @@ Although it works for environments found in the Atari 2600 suite, it requires a 
 It also requires gradient clipping with a maximum gradient norm of 0.5, which is only acceptable for some architectures, and for the architecture used in the paper it corresponds to about half the norm of the unclipped gradient throughout training. The logging for clipfrac is also incorrect, and neglects to account for how PPO conditions on the sign of the advantages when making clipping decisions.
 
 Thus, ppo1 is in some respects a much more general algorithm, appears to have been more competently designed, and offers superior performance out of the box. 
-For anyone seeking to reproduce the results of the PPO paper, using this variant of the algorithm is a no-brainer. 
+For anyone seeking to reproduce the results of the PPO paper, using this variant of the algorithm is the obvious choice. 
 
 ## Getting Started
 
