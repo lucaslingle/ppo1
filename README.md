@@ -31,9 +31,9 @@ There are [many differences between ppo1 and ppo2](https://openreview.net/forum?
 Our experiments suggest that ppo2's inferior performance can be directly attributed to these changes. 
 In particular, ppo2 relies on a clipping heuristic to construct a pessimistic value function loss, and the efficacy of the value clipping heuristic depends on the scale of the rewards.
 Although it works for environments found in the Atari 2600 suite, it requires a reward wrapper that clips the rewards to [-1, 1], which could be unacceptable in some domains.
-It also requires gradient clipping with a maximum gradient norm of 0.5, which is only acceptable for some architectures, and for the architecture used in the paper it corresponds to about half the norm of the unclipped gradient throughout training. The logging for clipfrac is also incorrect, and neglects to account for how PPO conditions on the sign of the advantages when making clipping decisions.
+It also requires gradient clipping with a maximum gradient norm of 0.5, which is only acceptable for some architectures, and for the architecture used in the paper it corresponds to about half the norm of the unclipped gradient throughout training. The logging for clipfrac is also incorrect, and neglects to account for how PPO conditions on the sign of the advantages when making clipping decisions. 
 
-Thus, ppo1 is in some respects a much more general algorithm, appears to have been more competently designed, and offers superior performance out of the box. 
+Thus, ppo1 is in some respects a much more general algorithm, appears to have been more competently written, and offers superior performance out of the box. 
 For anyone seeking to reproduce the results of the PPO paper, using this variant of the algorithm is the obvious choice. 
 
 ## Getting Started
