@@ -1,10 +1,10 @@
 # ppo1
 Pytorch port of [OpenAI baselines ppo1](https://github.com/openai/baselines/tree/master/baselines/ppo1), supporting parallel experience collection. 
 
-![pong gif](assets/model-ppo1-defaults/pong.gif)
+![beamrider gif](assets/beamrider-ppo-paper-defaults/beamrider.gif)
 ![breakout gif](assets/breakout-ppo-paper-defaults/breakout.gif)
 ![mspacman gif](assets/mspacman-ppo-paper-defaults/mspacman.gif)
-![beamrider gif](assets/beamrider-ppo-paper-defaults/beamrider.gif)
+![pong gif](assets/model-ppo1-defaults/pong.gif)
 ![enduro gif](assets/enduro-ppo-paper-defaults/enduro.gif)
 
 ## Background
