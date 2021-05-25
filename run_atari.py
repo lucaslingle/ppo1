@@ -17,7 +17,7 @@ def parse_args():
     p = argparse.ArgumentParser(description='Pytorch port of ppo1 for Atari.')
     p.add_argument('--mode', choices=['train', 'play', 'movie'], default='movie')
     p.add_argument('--env_name', type=str, default='BreakoutNoFrameskip-v4', help='Environment name')
-    p.add_argument('--env_steps', type=int, default=int(40 * 1e6))
+    p.add_argument('--env_steps', type=int, default=int(10 * 1e6))
     p.add_argument('--timesteps_per_actorbatch', type=int, default=128)
     p.add_argument('--gamma', type=float, default=0.99, help='Discount factor')
     p.add_argument('--lam', type=float, default=0.95, help='Decay param for GAE')
@@ -60,7 +60,9 @@ def main(args):
     env = Monitor(env, logger.get_dir() and
               os.path.join(logger.get_dir(), str(rank)))
     print(f"frame_stacking: {args.frame_stacking}")
-    env = wrap_deepmind(env, frame_stack=args.frame_stacking, clip_rewards=(args.mode =='train'))
+    env = wrap_deepmind(env, frame_stack=args.frame_stacking,
+                        clip_rewards=(args.mode =='train'),
+                        episode_life=(args.mode =='train'))  # See Mnih et al., 2015 -> Methods -> Training Details.
     env.seed(workerseed)
 
     # agent.
